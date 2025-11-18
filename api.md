@@ -81,3 +81,237 @@ const formButtons = element('form').elements('button');
 **Errors**
 
 - Throws `TypeError` when `selector` is not a string.
+
+## HTML Components
+
+### `<include>`
+
+Dynamically loads HTML content from a URL and replaces the `<include>` tag with the fetched content.
+
+**Attributes**:
+- `href` or `src` *(required)* – URL to fetch content from
+- `method` *(optional)* – HTTP method (default: GET)
+- `credentials` *(optional)* – Credentials mode: `omit`, `same-origin`, `include`
+
+**States**:
+- `data-jsimpled-include-state="loading"` – Currently fetching
+- `data-jsimpled-include-state="loaded"` – Successfully loaded
+- `data-jsimpled-include-state="error"` – Failed to load
+
+**Example**:
+```html
+<include href="header.html"></include>
+<include src="/api/content" method="POST"></include>
+```
+
+### `<fetch-list>`
+
+Fetches a JSON array from an API and renders it using a template with placeholder replacement.
+
+**Attributes**:
+- `url` *(required)* – API endpoint that returns a JSON array
+- `template` *(optional)* – Template ID (searches inside element first, then document)
+- `auth` *(optional)* – Credentials mode: `omit` (default), `same-origin`, `include`
+- `load` *(optional)* – Loading mode: `auto` (default), `lazy`, `manual`
+- `placeholder` *(optional)* – Template ID to show while loading
+- `empty` *(optional)* – Template ID to show when array is empty
+- `error` *(optional)* – Template ID to show on error
+- `method` *(optional)* – HTTP method (default: GET)
+
+**States**:
+- `data-state="idle"` – Initial state
+- `data-state="loading"` – Currently fetching
+- `data-state="ready"` – Successfully rendered
+- `data-state="empty"` – Array is empty
+- `data-state="error"` – Fetch failed
+
+**Templating**:
+
+Placeholders use `{key}` syntax with support for:
+- Nested properties: `{user.name}`, `{orders[0].total}`
+- Formatters: `{price|currency(USD)}`, `{createdAt|date(YYYY-MM-DD)}`
+- Works in text nodes and attributes: `<button data-id="{id}">View</button>`
+
+**Example**:
+```html
+<fetch-list url="/api/users" template="#user-card" load="auto">
+  <template id="user-card">
+    <div class="card" data-user-id="{id}">
+      <h2>{name}</h2>
+      <p>Age: {age}</p>
+      <p>Joined: {createdAt|date(YYYY-MM-DD)}</p>
+      <p>Balance: {balance|currency(USD)}</p>
+    </div>
+  </template>
+</fetch-list>
+```
+
+### `<inner-list>`
+
+Renders a nested array from the parent item's data. Must be used inside a `<fetch-list>` template.
+
+**Attributes**:
+- `key` *(required)* – Property name containing the nested array (supports dot/bracket notation)
+- `template` *(optional)* – Template ID for rendering items
+- `empty` *(optional)* – Template ID to show when nested array is empty
+
+**Example**:
+```html
+<fetch-list url="/api/users" template="#user-template">
+  <template id="user-template">
+    <div class="user">
+      <h2>{name}</h2>
+      <h3>Orders:</h3>
+      <inner-list key="orders" template="#order-template" empty="#no-orders">
+        <template id="order-template">
+          <div class="order">
+            <p>Order #{id}: {total|currency(USD)}</p>
+            <span>{status|upper}</span>
+          </div>
+        </template>
+        <template id="no-orders">
+          <p>No orders yet</p>
+        </template>
+      </inner-list>
+    </div>
+  </template>
+</fetch-list>
+```
+
+## JavaScript API
+
+### `include(scopeOrOptions, maybeOptions)`
+
+Processes `<include>` elements within a scope.
+
+**Parameters**:
+- `scopeOrOptions` `{Element|Object}` – DOM scope or options object
+- `maybeOptions` `{Object}` – Options when first param is scope
+
+**Options**:
+- `fetch` `{Function}` – Custom fetch implementation
+- `transform` `{Function}` – Transform HTML before insertion: `(html, element) => string`
+- `beforeInsert` `{Function}` – Hook before DOM insertion: `(element, fragment) => Node?`
+- `afterInsert` `{Function}` – Hook after insertion: `(element) => void`
+- `onError` `{Function}` – Error handler: `(error, element) => void`
+- `request` `{Function}` – Custom RequestInit builder: `(element) => RequestInit`
+
+**Returns**: `{Promise<Element[]>}` – Processed elements
+
+**Example**:
+```js
+// Process all includes
+include();
+
+// Process includes in a scope
+include(document.querySelector('#content'));
+
+// With options
+include({
+  transform: (html, element) => html.replace(/foo/g, 'bar'),
+  onError: (error) => console.error('Include failed:', error)
+});
+```
+
+### `fetchList(elementOrSelector, options)`
+
+Controls a `<fetch-list>` element programmatically.
+
+**Parameters**:
+- `elementOrSelector` `{Element|string}` – fetch-list element or CSS selector
+- `options` `{Object}` – Configuration options
+
+**Options**:
+- `url` `{string|Function}` – Override URL: `(element) => string`
+- `params` `{Object|Function}` – Query parameters: `(element) => Object`
+- `body` `{*|Function}` – Request body: `(element) => any`
+- `headers` `{Object|Function}` – Custom headers: `(element) => Object`
+- `request` `{Function}` – Full RequestInit builder: `(element) => RequestInit`
+- `transform` `{Function}` – Transform data: `(data, element) => Array`
+- `beforeRender` `{Function}` – Before rendering: `(items, element) => void`
+- `afterRender` `{Function}` – After rendering: `(nodes, element) => void`
+- `beforeItemRender` `{Function}` – Before each item: `(fragment, item, context) => void`
+- `onError` `{Function}` – Error handler: `(error, element) => void`
+- `onStateChange` `{Function}` – State change listener: `(state, element) => void`
+- `fetch` `{Function}` – Custom fetch implementation
+
+**Returns**: `{Object}` – Controller with methods:
+- `reload(overrides)` – Refetch with optional option overrides
+- `setOptions(options)` – Update stored options
+- `destroy()` – Clean up and reset
+
+**Example**:
+```js
+// Get controller for element
+const controller = fetchList('#user-list');
+
+// Reload with different parameters
+controller.reload({
+  params: { status: 'active', page: 2 }
+});
+
+// With custom headers for auth
+const authList = fetchList('#products', {
+  headers: (element) => ({
+    'Authorization': `Bearer ${getToken()}`
+  })
+});
+
+// Manual reload
+document.querySelector('#reload-btn').addEventListener('click', () => {
+  controller.reload();
+});
+```
+
+### `formatters.register(name, fn)`
+
+Registers a custom formatter function.
+
+**Parameters**:
+- `name` `{string}` – Formatter name (used in templates)
+- `fn` `{Function}` – Formatter function: `(value, args, context) => any`
+
+**Example**:
+```js
+// Register custom formatter
+jsimpled.formatters.register('reverse', (value) => {
+  return String(value).split('').reverse().join('');
+});
+
+// Use in template
+// {username|reverse}
+```
+
+### `formatters.unregister(name)`
+
+Removes a registered formatter.
+
+**Parameters**:
+- `name` `{string}` – Formatter name
+
+**Returns**: `{boolean}` – True if formatter existed
+
+### Built-in Formatters
+
+- `upper` – Convert to uppercase
+- `lower` – Convert to lowercase
+- `capitalize` – Capitalize first letter
+- `number(decimals)` – Format number with decimal places
+- `currency(code, locale)` – Format as currency (e.g., `USD`, `EUR`)
+- `date(format)` – Format date (tokens: YYYY, MM, DD, HH, mm, ss)
+- `join(separator)` – Join array with separator
+- `truncate(length, suffix)` – Truncate string with ellipsis
+- `default(fallback)` – Return fallback if value is falsy
+- `map(key=value,...)` – Map values (e.g., `pending=Pending,active=Active`)
+- `urlencode` – URL-encode value
+- `escape` – HTML-escape value
+
+**Examples**:
+```html
+{price|currency(USD)}
+{createdAt|date(YYYY-MM-DD HH:mm)}
+{tags|join(, )}
+{description|truncate(100)}
+{status|map(0=Inactive,1=Active)}
+{username|default(Anonymous)}
+```

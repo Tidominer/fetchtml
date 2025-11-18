@@ -5,6 +5,7 @@
 
 import { element, elements, attachScopedSelectors } from './selectors.js';
 import { include, initIncludeAutoload } from './include.js';
+import { fetchList, initFetchListAutoload, formatters } from './fetch-list.js';
 
 // Attach scoped selector methods to DOM prototypes
 if (typeof window !== 'undefined') {
@@ -14,6 +15,9 @@ if (typeof window !== 'undefined') {
 
   // Auto-initialize include on DOMContentLoaded
   initIncludeAutoload();
+  
+  // Auto-initialize fetch-list on DOMContentLoaded
+  initFetchListAutoload();
 
   // Export to global namespace
   if (!window.jsimpled) {
@@ -23,10 +27,13 @@ if (typeof window !== 'undefined') {
   window.jsimpled.element = element;
   window.jsimpled.elements = elements;
   window.jsimpled.include = include;
+  window.jsimpled.fetchList = fetchList;
+  window.jsimpled.formatters = formatters;
   window.element = element;
   window.elements = elements;
   window.include = include;
+  window.fetchList = fetchList;
 }
 
 // Export for module systems
-export { element, elements, include };
+export { element, elements, include, fetchList, formatters };
