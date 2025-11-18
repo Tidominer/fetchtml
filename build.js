@@ -1,0 +1,73 @@
+#!/usr/bin/env node
+/**
+ * Build script for jsimpled library
+ * Generates ESM, IIFE, and minified bundles
+ */
+
+import * as esbuild from 'esbuild';
+import { promises as fs } from 'fs';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const builds = [
+  {
+    name: 'ESM',
+    outfile: 'dist/jsimpled.esm.js',
+    format: 'esm',
+  },
+  {
+    name: 'IIFE',
+    outfile: 'dist/jsimpled.js',
+    format: 'iife',
+    globalName: 'jsimpled',
+  },
+  {
+    name: 'IIFE (minified)',
+    outfile: 'dist/jsimpled.min.js',
+    format: 'iife',
+    globalName: 'jsimpled',
+    minify: true,
+    sourcemap: true,
+  },
+];
+
+async function build() {
+  // Ensure dist directory exists
+  try {
+    await fs.mkdir('dist', { recursive: true });
+  } catch (err) {
+    // Directory already exists
+  }
+
+  console.log('Building jsimpled...\n');
+
+  for (const config of builds) {
+    try {
+      const result = await esbuild.build({
+        entryPoints: ['src/index.js'],
+        bundle: true,
+        format: config.format,
+        globalName: config.globalName,
+        outfile: config.outfile,
+        minify: config.minify || false,
+        sourcemap: config.sourcemap || false,
+        target: ['es2015'],
+        logLevel: 'info',
+      });
+
+      console.log(`✓ ${config.name}: ${config.outfile}`);
+    } catch (err) {
+      console.error(`✗ ${config.name} failed:`, err);
+      process.exit(1);
+    }
+  }
+
+  console.log('\nBuild complete!');
+}
+
+build().catch((err) => {
+  console.error('Build failed:', err);
+  process.exit(1);
+});
