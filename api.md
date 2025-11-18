@@ -131,6 +131,13 @@ Placeholders use `{key}` syntax with support for:
 - Nested properties: `{user.name}`, `{orders[0].total}`
 - Formatters: `{price|currency(USD)}`, `{createdAt|date(YYYY-MM-DD)}`
 - Works in text nodes and attributes: `<button data-id="{id}">View</button>`
+- Parent traversal: `{parent.customerId}`, `{parent.parent.accountId}`
+- Explicit current/root references: `{data.parent}` or `{root.accountId}` to avoid keyword collisions
+
+The keywords `parent`, `data`, `this`, and `root` are reserved:
+- Use `parent` (and `parent.parent`, etc.) to access ancestor list items.
+- Use `data` or `this` to refer to the current item explicitly (helpful when the object itself has a `parent` property).
+- `root` always points to the item from the top-level `<fetch-list>`.
 
 **Example**:
 ```html
@@ -166,7 +173,10 @@ Renders a nested array from the parent item's data. Must be used inside a `<fetc
         <template id="order-template">
           <div class="order">
             <p>Order #{id}: {total|currency(USD)}</p>
-            <span>{status|upper}</span>
+            <span class="status">{status|upper}</span>
+            <button class="order-details" data-customer="{parent.id}" data-order="{id}">
+              View details for {parent.name}
+            </button>
           </div>
         </template>
         <template id="no-orders">

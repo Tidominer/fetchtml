@@ -257,23 +257,18 @@ function renderItems(element, items, options) {
   }
   
   // Render
-  const fragment = templating.renderList(items, template, {
+  const { fragment, descriptors } = templating.renderList(items, template, {
     context: options?.context,
     beforeRender: options?.beforeItemRender,
   });
   
-  // Attach data to rendered items for inner-list context
-  const children = Array.from(fragment.children);
-  children.forEach((child, index) => {
-    if (items[index]) {
-      child._jsimpledData = items[index];
-    }
-  });
-  
+  // Annotate rendered nodes with descriptor data for nested context lookups
+  attachDescriptors(descriptors);
+
   // Clear and append
   element.innerHTML = '';
   element.appendChild(fragment);
-  
+
   // Process inner-list elements
   processInnerLists(element);
   
@@ -311,16 +306,16 @@ function renderInnerList(element) {
     return;
   }
   
-  // Find parent item data (stored on closest rendered item)
-  const parentData = findParentData(element);
-  if (!parentData) {
+  // Find parent descriptor (stored on closest rendered item)
+  const parentDescriptor = findParentDescriptor(element);
+  if (!parentDescriptor) {
     console.warn('inner-list could not find parent data context.');
     return;
   }
   
   // Resolve data array
-  const items = templating.resolvePath(parentData, key);
-  
+  const items = templating.resolvePath(parentDescriptor.data, key);
+
   // Handle empty or non-array
   if (!Array.isArray(items) || items.length === 0) {
     const emptyTemplate = findStateTemplate(element, 'empty');
@@ -348,9 +343,16 @@ function renderInnerList(element) {
   }
   
   // Render items
-  const fragment = templating.renderList(items, template);
+  const { fragment, descriptors } = templating.renderList(items, template, {
+    parentContext: parentDescriptor,
+  });
   element.innerHTML = '';
   element.appendChild(fragment);
+
+  attachDescriptors(descriptors);
+
+  // Preserve descriptor on element for nested lookups
+  element._jsimpledDescriptor = parentDescriptor;
   
   // Recursively process nested inner-lists
   processInnerLists(element);
@@ -362,13 +364,13 @@ function renderInnerList(element) {
  * @param {Element} element
  * @returns {Object|null}
  */
-function findParentData(element) {
+function findParentDescriptor(element) {
   let current = element.parentElement;
   
   while (current) {
-    // Check if this element has data attached
-    if (current._jsimpledData) {
-      return current._jsimpledData;
+    // Check if this element has descriptor attached
+    if (current._jsimpledDescriptor) {
+      return current._jsimpledDescriptor;
     }
     
     // Stop at fetch-list boundary
@@ -383,17 +385,25 @@ function findParentData(element) {
 }
 
 /**
- * Attaches data to rendered elements for inner-list context.
- * @param {DocumentFragment} fragment
- * @param {Array} items
+ * Attaches descriptor metadata to rendered nodes for context traversal.
+ * @param {Array} descriptors
  */
-function attachDataToItems(fragment, items) {
-  const children = Array.from(fragment.children);
-  
-  children.forEach((child, index) => {
-    if (items[index]) {
-      child._jsimpledData = items[index];
+function attachDescriptors(descriptors) {
+  if (!Array.isArray(descriptors)) {
+    return;
+  }
+
+  descriptors.forEach((descriptor) => {
+    if (!descriptor || !descriptor.nodes) {
+      return;
     }
+
+    descriptor.nodes.forEach((node) => {
+      if (node && node.nodeType === Node.ELEMENT_NODE) {
+        node._jsimpledData = descriptor.data;
+        node._jsimpledDescriptor = descriptor;
+      }
+    });
   });
 }
 
