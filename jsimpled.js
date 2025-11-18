@@ -289,26 +289,26 @@
   attachScopedSelectors(global.Document && global.Document.prototype);
   attachScopedSelectors(global.DocumentFragment && global.DocumentFragment.prototype);
 
-  const INCLUDE_STATE_ATTR = 'data-jsimpled-include-state';
-  const INCLUDE_SELECTOR = 'include[href], include[src]';
+  const FETCH_HTML_STATE_ATTR = 'data-jsimpled-fetch-html-state';
+  const FETCH_HTML_SELECTOR = 'fetch-html[href], fetch-html[src]';
 
   function isNode(value) {
     return Boolean(value && typeof value === 'object' && typeof value.nodeType === 'number');
   }
 
-  function markIncludeState(element, state) {
+  function setFetchHtmlState(element, state) {
     if (element && typeof element.setAttribute === 'function') {
-      element.setAttribute(INCLUDE_STATE_ATTR, state);
+      element.setAttribute(FETCH_HTML_STATE_ATTR, state);
     }
   }
 
-  function getIncludeState(element) {
+  function getFetchHtmlState(element) {
     return element && typeof element.getAttribute === 'function'
-      ? element.getAttribute(INCLUDE_STATE_ATTR)
+      ? element.getAttribute(FETCH_HTML_STATE_ATTR)
       : null;
   }
 
-  function normalizeIncludeArgs(scopeOrOptions, maybeOptions) {
+  function normalizeFetchHtmlArgs(scopeOrOptions, maybeOptions) {
     if (isNode(scopeOrOptions)) {
       return {
         scope: scopeOrOptions,
@@ -322,7 +322,7 @@
     };
   }
 
-  function getIncludeFetcher(options) {
+  function getFetcher(options) {
     if (options && typeof options.fetch === 'function') {
       return options.fetch;
     }
@@ -371,7 +371,7 @@
     return undefined;
   }
 
-  function handleIncludeSuccess(element, fragment, options) {
+  function handleSuccess(element, fragment, options) {
     const override = invokeHook(options && options.beforeInsert, [element, fragment]);
     const nodeToInsert = typeof Node !== 'undefined' && override instanceof Node ? override : fragment;
 
@@ -381,12 +381,12 @@
       element.parentNode.replaceChild(nodeToInsert, element);
     }
 
-    markIncludeState(element, 'loaded');
+    setFetchHtmlState(element, 'loaded');
     invokeHook(options && options.afterInsert, [element]);
   }
 
-  function handleIncludeError(element, options, error) {
-    markIncludeState(element, 'error');
+  function handleError(element, options, error) {
+    setFetchHtmlState(element, 'error');
     if (element && typeof options?.onError === 'function') {
       try {
         options.onError(error, element);
@@ -399,37 +399,37 @@
     console.error(error);
   }
 
-  function processIncludeElement(element, options) {
-    const existingState = getIncludeState(element);
+  function processFetchHtmlElement(element, options) {
+    const existingState = getFetchHtmlState(element);
     if (existingState === 'loading' || existingState === 'loaded') {
       return Promise.resolve(null);
     }
 
     const source = element.getAttribute('href') || element.getAttribute('src');
     if (!source) {
-      const error = new Error('include element requires an "href" or "src" attribute.');
-      handleIncludeError(element, options, error);
+      const error = new Error('fetch-html element requires an "href" or "src" attribute.');
+      handleError(element, options, error);
       return Promise.reject(error);
     }
 
-    const fetchImpl = getIncludeFetcher(options);
+    const fetchImpl = getFetcher(options);
     if (!fetchImpl) {
-      const error = new Error('jsimpled.include requires a fetch implementation.');
-      handleIncludeError(element, options, error);
+      const error = new Error('jsimpled.fetchHtml requires a fetch implementation.');
+      handleError(element, options, error);
       return Promise.reject(error);
     }
 
-    markIncludeState(element, 'loading');
+    setFetchHtmlState(element, 'loading');
     const requestInit = buildRequestInit(element, options);
 
     return fetchImpl(source, requestInit)
       .then((response) => {
         if (!response || typeof response.text !== 'function') {
-          throw new TypeError('Invalid response from include fetch.');
+          throw new TypeError('Invalid response from fetch-html request.');
         }
 
         if (!response.ok) {
-          const error = new Error(`Failed to load include (${response.status} ${response.statusText}).`);
+          const error = new Error(`Failed to load fetch-html (${response.status} ${response.statusText}).`);
           error.response = response;
           throw error;
         }
@@ -443,24 +443,24 @@
           : rawContent;
 
         const fragment = createFragmentFromContent(String(content || ''));
-        handleIncludeSuccess(element, fragment, options || null);
+        handleSuccess(element, fragment, options || null);
         return element;
       })
       .catch((error) => {
-        handleIncludeError(element, options, error);
+        handleError(element, options, error);
         throw error;
       });
   }
 
-  function collectIncludeNodes(scope) {
+  function collectFetchHtmlNodes(scope) {
     if (!scope || typeof scope.querySelectorAll !== 'function') {
       return [];
     }
 
-    return helpers.toArray(scope.querySelectorAll(INCLUDE_SELECTOR));
+    return helpers.toArray(scope.querySelectorAll(FETCH_HTML_SELECTOR));
   }
 
-  function reportIncludeScopeError(options, error, scope) {
+  function reportScopeError(options, error, scope) {
     if (typeof options?.onError === 'function') {
       try {
         options.onError(error, scope || null);
@@ -473,37 +473,37 @@
     console.error(error);
   }
 
-  function include(scopeOrOptions, maybeOptions) {
+  function fetchHtml(scopeOrOptions, maybeOptions) {
     if (typeof document === 'undefined') {
       return Promise.resolve([]);
     }
 
-    const normalized = normalizeIncludeArgs(scopeOrOptions, maybeOptions);
+    const normalized = normalizeFetchHtmlArgs(scopeOrOptions, maybeOptions);
     const options = normalized.options || {};
 
     let scope;
     try {
       scope = normalized.scope ? helpers.resolveScope(normalized.scope) : document;
     } catch (error) {
-      reportIncludeScopeError(options, error, normalized.scope || null);
+      reportScopeError(options, error, normalized.scope || null);
       return Promise.reject(error);
     }
 
-    const nodes = collectIncludeNodes(scope);
+    const nodes = collectFetchHtmlNodes(scope);
     if (!nodes.length) {
       return Promise.resolve([]);
     }
 
-    const promises = nodes.map((node) => processIncludeElement(node, options));
+    const promises = nodes.map((node) => processFetchHtmlElement(node, options));
     return Promise.all(promises).catch((error) => {
       throw error;
     });
   }
 
   if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-    document.addEventListener('DOMContentLoaded', function handleIncludeAutoload() {
-      include().catch(() => {
-        // Errors are already reported via handleIncludeError; silence promise warnings.
+    document.addEventListener('DOMContentLoaded', function handleFetchHtmlAutoload() {
+      fetchHtml().catch(() => {
+        // Errors are already reported via handleError; silence promise warnings.
       });
     });
   }
@@ -514,8 +514,8 @@
 
   global.jsimpled.element = element;
   global.jsimpled.elements = elements;
-  global.jsimpled.include = include;
+  global.jsimpled.fetchHtml = fetchHtml;
   global.element = element;
   global.elements = elements;
-  global.include = include;
+  global.fetchHtml = fetchHtml;
 })(typeof window !== 'undefined' ? window : this);

@@ -84,9 +84,9 @@ const formButtons = element('form').elements('button');
 
 ## HTML Components
 
-### `<include>`
+### `<fetch-html>`
 
-Dynamically loads HTML content from a URL and replaces the `<include>` tag with the fetched content.
+Fetches HTML content from a URL and replaces the `<fetch-html>` tag with the fetched markup.
 
 **Attributes**:
 - `href` or `src` *(required)* – URL to fetch content from
@@ -94,14 +94,14 @@ Dynamically loads HTML content from a URL and replaces the `<include>` tag with 
 - `credentials` *(optional)* – Credentials mode: `omit`, `same-origin`, `include`
 
 **States**:
-- `data-jsimpled-include-state="loading"` – Currently fetching
-- `data-jsimpled-include-state="loaded"` – Successfully loaded
-- `data-jsimpled-include-state="error"` – Failed to load
+- `data-jsimpled-fetch-html-state="loading"` – Currently fetching
+- `data-jsimpled-fetch-html-state="loaded"` – Successfully loaded
+- `data-jsimpled-fetch-html-state="error"` – Failed to load
 
 **Example**:
 ```html
-<include href="header.html"></include>
-<include src="/api/content" method="POST"></include>
+<fetch-html href="header.html"></fetch-html>
+<fetch-html src="/api/content" method="POST"></fetch-html>
 ```
 
 ### `<fetch-list>`
@@ -190,9 +190,9 @@ Renders a nested array from the parent item's data. Must be used inside a `<fetc
 
 ## JavaScript API
 
-### `include(scopeOrOptions, maybeOptions)`
+### `fetchHtml(scopeOrOptions, maybeOptions)`
 
-Processes `<include>` elements within a scope.
+Processes `<fetch-html>` elements within a scope.
 
 **Parameters**:
 - `scopeOrOptions` `{Element|Object}` – DOM scope or options object
@@ -210,16 +210,16 @@ Processes `<include>` elements within a scope.
 
 **Example**:
 ```js
-// Process all includes
-include();
+// Process all fetch-html elements
+fetchHtml();
 
-// Process includes in a scope
-include(document.querySelector('#content'));
+// Process fetch-html within a scope
+fetchHtml(document.querySelector('#content'));
 
 // With options
-include({
+fetchHtml({
   transform: (html, element) => html.replace(/foo/g, 'bar'),
-  onError: (error) => console.error('Include failed:', error)
+  onError: (error) => console.error('fetchHtml failed:', error)
 });
 ```
 

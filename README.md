@@ -1,13 +1,13 @@
 # jsimpled
 
-A lightweight DOM helper library with shorthand selectors, HTML includes, and declarative data binding.
+A lightweight DOM helper library with shorthand selectors, fetch-based HTML includes, and declarative data binding.
 
 ## Features
 
 - **Shorthand selectors**: `element('#id')`, `element('.class')`, `element('tag')`
 - **Multi-class support**: Space-separated classes require all matches
 - **Scoped queries**: `someElement.element('.child')`
-- **HTML includes**: `<include href="partial.html">`
+- **HTML includes**: `<fetch-html href="partial.html">`
 - **Data-driven lists**: `<fetch-list>` with JSON API binding and templating
 - **Nested rendering**: `<inner-list>` for hierarchical data
 - **Template formatters**: Built-in and custom value transformers
@@ -38,8 +38,8 @@ Or use the single-file build:
   const cards = elements('.card');
   const firstLink = hero.element('a');
 
-  // Load includes
-  include();
+  // Fetch and inject HTML fragments
+  fetchHtml();
   
   // Control fetch-list dynamically
   const userList = fetchList('#users');
@@ -50,11 +50,11 @@ Or use the single-file build:
 ### Module bundlers (optional)
 
 ```js
-import { element, elements, include, fetchList } from 'jsimpled';
+import { element, elements, fetchHtml, fetchList } from 'jsimpled';
 
 const hero = element('#hero');
 const cards = elements('.card');
-include();
+fetchHtml();
 ```
 
 ### Data-driven rendering

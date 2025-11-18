@@ -11,7 +11,7 @@ jsimpled/
 ├── src/                    # Source modules
 │   ├── helpers.js         # Shared DOM utility functions
 │   ├── selectors.js       # Element selection logic
-│   ├── include.js         # HTML include functionality
+│   ├── fetch-html.js      # HTML fetching functionality
 │   └── index.js           # Main entry point & exports
 ├── dist/                   # Build output (generated)
 │   ├── jsimpled.js        # IIFE bundle
@@ -41,13 +41,13 @@ Element selection with shorthand syntax:
 - `element()` / `elements()` - Public API
 - `attachScopedSelectors()` - Prototype extension
 
-### `src/include.js`
-HTML include tag processing:
+### `src/fetch-html.js`
+HTML fetch tag processing:
 - State management functions
 - Fetch and processing logic
 - Hook system (beforeInsert, afterInsert, onError, etc.)
-- `include()` - Public API
-- `initIncludeAutoload()` - DOMContentLoaded handler
+- `fetchHtml()` - Public API
+- `initFetchHtmlAutoload()` - DOMContentLoaded handler
 
 ### `src/index.js`
 Main entry point that:
