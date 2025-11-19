@@ -220,8 +220,6 @@ function renderData(element, data, options) {
 
   if (templateAttr) {
     template = templating.findTemplate(templateAttr, element);
-  } else {
-    template = element.querySelector('template');
   }
 
   if (!template) {

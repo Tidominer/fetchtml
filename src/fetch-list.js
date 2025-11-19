@@ -294,15 +294,12 @@ function renderItems(element, items, options) {
 
   // Find template
   const templateAttr = element.getAttribute('template');
-  let template = null;
-  
-  if (templateAttr) {
-    template = templating.findTemplate(templateAttr, element);
-  } else {
-    // Look for inline template
-    template = element.querySelector('template');
+  if (!templateAttr) {
+    console.error('fetch-list requires a "template" attribute that references a document-level template.');
+    return;
   }
-  
+
+  const template = templating.findTemplate(templateAttr, element);
   if (!template) {
     console.error('No template found for fetch-list.');
     return;
@@ -402,14 +399,13 @@ function renderInnerList(element) {
   
   // Find template
   const templateAttr = element.getAttribute('template');
-  let template = null;
-  
-  if (templateAttr) {
-    template = templating.findTemplate(templateAttr, element);
-  } else {
-    template = element.querySelector('template');
+  if (!templateAttr) {
+    console.error('inner-list requires a "template" attribute that references a document-level template.');
+    return;
   }
-  
+
+  const template = templating.findTemplate(templateAttr, element);
+
   if (!template) {
     console.error('No template found for inner-list.');
     return;

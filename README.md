@@ -37,25 +37,28 @@ You can now use the tags:
 <fetch-html url="/api/users" load="auto"></fetch-html>
 
 <!-- Fetch a single JSON object and render it with a template -->
-<fetch-json url="/api/profile" template="#profile" load="auto">
-  <template id="profile">
-    <section class="profile">
-      <h1>{name}</h1>
-      <p>Email: {email}</p>
-    </section>
-  </template>
-</fetch-json>
+<fetch-json url="/api/profile" template="#profile" load="auto"></fetch-json>
 
 <!-- Fetch a remote JSON list and render it with a template -->
-<fetch-list url="/api/users" template="#user-card" load="auto">
-  <template id="user-card">
-    <div class="card">
-      <h2>{name}</h2>
-      <p>Email: {email}</p>
-      <p>Joined: {createdAt|date(YYYY-MM-DD)}</p>
-    </div>
-  </template>
-</fetch-list>
+<fetch-list url="/api/users" template="#user-card" load="auto"></fetch-list>
+```
+
+```html
+<!-- Define templates once at document level -->
+<template id="profile">
+  <section class="profile">
+    <h1>{name}</h1>
+    <p>Email: {email}</p>
+  </section>
+</template>
+
+<template id="user-card">
+  <div class="card">
+    <h2>{name}</h2>
+    <p>Email: {email}</p>
+    <p>Joined: {createdAt|date(YYYY-MM-DD)}</p>
+  </div>
+</template>
 ```
 
 ### Loading modes

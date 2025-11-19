@@ -33,7 +33,7 @@ Fetches a JSON object from an endpoint and renders it using template placeholder
 
 **Attributes**:
 - `url` *(required)* – Endpoint that returns a JSON object (aliases: `href`, `src`)
-- `template` *(optional)* – Template ID (searches inside element first, then document)
+- `template` *(required)* – ID of a `<template>` element defined in the document
 - `method` *(optional)* – HTTP method (default: GET)
 - `credentials` *(optional)* – Credentials mode: `omit`, `same-origin`, `include`
 - `load` *(optional)* – Loading mode: `auto` (default), `lazy`, `manual`
@@ -65,7 +65,7 @@ Fetches a JSON array from an API and renders it using a template with placeholde
 
 **Attributes**:
 - `url` *(required)* – API endpoint that returns a JSON array
-- `template` *(optional)* – Template ID (searches inside element first, then document)
+- `template` *(required)* – ID of a `<template>` element defined in the document
 - `auth` *(optional)* – Credentials mode: `omit` (default), `same-origin`, `include`
 - `load` *(optional)* – Loading mode: `auto` (default), `lazy`, `manual`
 - `placeholder` *(optional)* – Template ID to show while loading
@@ -113,9 +113,8 @@ The keywords `parent`, `data`, `this`, and `root` are reserved:
 
 Renders a nested array from the parent item's data. Must be used inside a `<fetch-list>` template.
 
-**Attributes**:
 - `key` *(required)* – Property name containing the nested array (supports dot/bracket notation)
-- `template` *(optional)* – Template ID for rendering items
+- `template` *(required)* – ID of a `<template>` element defined in the document
 - `empty` *(optional)* – Template ID to show when nested array is empty
 - `replace` *(optional)* – When present, renders nested items in place of the `<inner-list>` tag
 

@@ -236,12 +236,6 @@ export function findTemplate(selector, scope = null) {
   // Add # if it looks like an ID without prefix
   const query = selector.startsWith('#') ? selector : `#${selector}`;
 
-  // Search in scope first
-  if (scope) {
-    const scopedTemplate = scope.querySelector(query);
-    if (scopedTemplate) return scopedTemplate;
-  }
-
   // Search in document
   return document.querySelector(query);
 }
