@@ -2,93 +2,11 @@
 
 This document describes the public API for FetchTML, focusing on fetch-aware HTML components, templating utilities, and optional selector helpers.
 
-## Selection Helpers (optional)
-
-These helpers provide shorthand query methods for the DOM. They remain available for convenience, but FetchTML's primary value comes from its fetch components.
-
-### `element(selector)`
-
-Returns the first element in the current document that matches the selector shorthand (`#id`, `.class`, or tag name).
-- **Parameters**:
-  - `selector` `{string}` – Selector string that may start with `#`, `.`, or a tag name. Leading and trailing whitespace is ignored.
-- **Returns**: `{Element|null}` – The first matching element, or `null` when no match is found.
-- Space-separated class names (e.g. `.card featured`) require the element to contain **all** listed classes.
-
-```js
-const hero = element('#hero');
-const firstCard = element('.card');
-const firstSection = element('section');
-const missingButton = element('#does-not-exist'); // => null
-```
-
-**Errors**
-
-- Throws `TypeError` when `selector` is not a string.
-
-### `Element#element(selector)`
-
-Searches within the descendants of the current node using the same selector shorthand.
-- **Parameters**:
-  - `selector` `{string}` – Selector string that may start with `#`, `.`, or a tag name.
-- **Returns**: `{Element|null}` – First matching descendant element, or `null`.
-
-```js
-const sidebar = element('#sidebar');
-const firstLinkInSidebar = sidebar.element('a');
-
-// Works with chaining
-const submitButton = element('form').element('.submit');
-```
-
-**Errors**
-
-- Throws `TypeError` when `selector` is not a string.
-
-### `elements(selector)`
-
-Returns an array of all elements in the current document that match the selector shorthand.
-
-- **Parameters**:
-  - `selector` `{string}` – Selector string that may start with `#`, `.`, or a tag name.
-- **Returns**: `{Element[]}` – Array of matching elements. Empty when no element matches.
-- Space-separated class names filter to elements containing every class in the list.
-
-```js
-const allCards = elements('.card');
-const sections = elements('section');
-const nonexistent = elements('#missing'); // => []
-```
-
-**Errors**
-
-- Throws `TypeError` when `selector` is not a string.
-
-### `Element#elements(selector)`
-
-Returns an array of descendant elements on the current node that match the selector shorthand.
-
-- **Parameters**:
-  - `selector` `{string}` – Selector string that may start with `#`, `.`, or a tag name.
-- **Returns**: `{Element[]}` – Matching descendant elements. Empty when there is no match.
-- Space-separated class names filter within the current scope to descendants carrying all classes.
-
-```js
-const list = element('ul');
-const items = list.elements('li');
-
-// Chain with other selectors
-const formButtons = element('form').elements('button');
-```
-
-**Errors**
-
-- Throws `TypeError` when `selector` is not a string.
-
 ## HTML Components
 
 ### `<fetch-html>`
 
-Fetches HTML content from a URL and replaces the `<fetch-html>` tag with the fetched markup.
+Fetches HTML content from a URL and injects it inside the `<fetch-html>` element (unless `replace` is present, in which case the wrapper is swapped out).
 
 **Attributes**:
 - `href` or `src` *(required)* – URL to fetch content from
@@ -107,6 +25,38 @@ Fetches HTML content from a URL and replaces the `<fetch-html>` tag with the fet
 ```html
 <fetch-html href="header.html"></fetch-html>
 <fetch-html src="/api/content" load="lazy"></fetch-html>
+```
+
+### `<fetch-json>`
+
+Fetches a JSON object from an endpoint and renders it using template placeholders.
+
+**Attributes**:
+- `url` *(required)* – Endpoint that returns a JSON object (aliases: `href`, `src`)
+- `template` *(optional)* – Template ID (searches inside element first, then document)
+- `method` *(optional)* – HTTP method (default: GET)
+- `credentials` *(optional)* – Credentials mode: `omit`, `same-origin`, `include`
+- `load` *(optional)* – Loading mode: `auto` (default), `lazy`, `manual`
+- `placeholder` *(optional)* – Template ID to show while loading
+- `error` *(optional)* – Template ID to show on error
+- `replace` *(optional)* – When present, replaces the `<fetch-json>` element with the rendered markup
+
+**States** (`data-state`):
+- `idle` – Awaiting a load trigger (default before fetching)
+- `loading` – Currently fetching
+- `loaded` – Successfully rendered
+- `error` – Failed to load or missing data
+
+**Example**:
+```html
+<fetch-json url="/api/profile" template="#profile" load="lazy">
+  <template id="profile">
+    <section class="profile">
+      <h1>{name}</h1>
+      <p>{email}</p>
+    </section>
+  </template>
+</fetch-json>
 ```
 
 ### `<fetch-list>`
@@ -280,6 +230,43 @@ document.querySelector('#reload-btn').addEventListener('click', () => {
 });
 ```
 
+### `fetchJson(elementOrSelector, options)`
+
+Controls a `<fetch-json>` element programmatically.
+
+**Parameters**:
+- `elementOrSelector` `{Element|string}` – fetch-json element or CSS selector
+- `options` `{Object}` – Configuration options
+
+**Options**:
+- `url` `{string|Function}` – Override URL: `(element) => string`
+- `headers` `{Object|Function}` – Custom headers: `(element) => Object`
+- `body` `{*|Function}` – Request body
+- `request` `{Function}` – Full RequestInit builder: `(element) => RequestInit`
+- `transform` `{Function}` – Transform data before rendering: `(data, element) => any`
+- `beforeRender` `{Function}` – Hook before DOM insertion: `(node, data, element) => void`
+- `afterRender` `{Function}` – Hook after insertion: `(nodes, data, element) => void`
+- `onError` `{Function}` – Error handler: `(error, element) => void`
+- `onStateChange` `{Function}` – State change listener: `(state, element) => void`
+- `fetch` `{Function}` – Custom fetch implementation
+
+**Returns**: `{Promise<Element[]>}` – Processed elements
+
+**Example**:
+```js
+// Process all fetch-json elements
+fetchJson();
+
+// Process a single element with custom headers
+fetchJson('#profile', {
+  headers: () => ({ 'Authorization': `Bearer ${getToken()}` })
+});
+
+// Manual load of lazily configured element
+const profileEl = document.querySelector('fetch-json[load="manual"]');
+fetchJson(profileEl);
+```
+
 ### `formatters.register(name, fn)`
 
 Registers a custom formatter function.
@@ -332,3 +319,50 @@ Removes a registered formatter.
 {status|map(0=Inactive,1=Active)}
 {username|default(Anonymous)}
 ```
+
+## Helper Methods (optional)
+
+These selector helpers are convenience APIs attached to `fetchtml` and DOM prototypes. They’re not required for fetch-driven rendering, but remain available when you want concise DOM queries.
+
+### `element(selector)`
+
+Returns the first element in the current document that matches the selector shorthand (`#id`, `.class`, or tag name).
+
+- **Parameters**:
+  - `selector` `{string}` – Selector string that may start with `#`, `.`, or a tag name. Leading and trailing whitespace is ignored.
+- **Returns**: `{Element|null}` – The first matching element, or `null` when no match is found.
+- Space-separated class names (e.g. `.card featured`) require the element to contain **all** listed classes.
+
+```js
+const hero = element('#hero');
+const firstCard = element('.card');
+const firstSection = element('section');
+const missingButton = element('#does-not-exist'); // => null
+```
+
+> **Note:** Every `Element` also receives `element(selector)` for scoped lookups within its descendants. Usage and error handling are the same as the global helper.
+
+**Errors**
+
+- Throws `TypeError` when `selector` is not a string.
+
+### `elements(selector)`
+
+Returns an array of all elements in the current document that match the selector shorthand.
+
+- **Parameters**:
+  - `selector` `{string}` – Selector string that may start with `#`, `.`, or a tag name.
+- **Returns**: `{Element[]}` – Array of matching elements. Empty when no element matches.
+- Space-separated class names filter to elements containing every class in the list.
+
+```js
+const allCards = elements('.card');
+const sections = elements('section');
+const nonexistent = elements('#missing'); // => []
+```
+
+> **Note:** `Element#elements(selector)` provides the same API scoped to descendants of that element.
+
+**Errors**
+
+- Throws `TypeError` when `selector` is not a string.

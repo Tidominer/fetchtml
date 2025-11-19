@@ -6,6 +6,7 @@
 import { element, elements, attachScopedSelectors } from './selectors.js';
 import { fetchHtml, initFetchHtmlAutoload } from './fetch-html.js';
 import { fetchList, initFetchListAutoload, formatters } from './fetch-list.js';
+import { fetchJson, initFetchJsonAutoload } from './fetch-json.js';
 
 // Attach scoped selector methods to DOM prototypes
 if (typeof window !== 'undefined') {
@@ -19,6 +20,9 @@ if (typeof window !== 'undefined') {
   // Auto-initialize fetch-list on DOMContentLoaded
   initFetchListAutoload();
 
+  // Auto-initialize fetch-json on DOMContentLoaded
+  initFetchJsonAutoload();
+
   // Export to global namespace
   if (!window.fetchtml) {
     window.fetchtml = {};
@@ -26,6 +30,7 @@ if (typeof window !== 'undefined') {
 
   window.fetchtml.fetchHtml = fetchHtml;
   window.fetchtml.fetchList = fetchList;
+  window.fetchtml.fetchJson = fetchJson;
   window.fetchtml.formatters = formatters;
   window.fetchtml.element = element;
   window.fetchtml.elements = elements;
@@ -33,7 +38,8 @@ if (typeof window !== 'undefined') {
   // Backward compatibility aliases (optional future removal)
   window.fetchHtml = fetchHtml;
   window.fetchList = fetchList;
+  window.fetchJson = fetchJson;
 }
 
 // Export for module systems
-export { element, elements, fetchHtml, fetchList, formatters };
+export { element, elements, fetchHtml, fetchList, fetchJson, formatters };

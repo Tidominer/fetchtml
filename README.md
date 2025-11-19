@@ -36,6 +36,16 @@ You can now use the tags:
 <!-- Fetch a remote HTML fragment -->
 <fetch-html url="/api/users" load="auto"></fetch-html>
 
+<!-- Fetch a single JSON object and render it with a template -->
+<fetch-json url="/api/profile" template="#profile" load="auto">
+  <template id="profile">
+    <section class="profile">
+      <h1>{name}</h1>
+      <p>Email: {email}</p>
+    </section>
+  </template>
+</fetch-json>
+
 <!-- Fetch a remote JSON list and render it with a template -->
 <fetch-list url="/api/users" template="#user-card" load="auto">
   <template id="user-card">
@@ -52,8 +62,8 @@ You can now use the tags:
 
 - `load="auto"` (default) – load immediately after DOMContentLoaded
 - `load="lazy"` – defer until the element enters the viewport (uses `IntersectionObserver` when available)
-- `load="manual"` – skip automatic loading; call `fetchHtml(element)` or `fetchtml.fetchHtml(element)` when ready
-- States are exposed via `data-state` (`idle`, `loading`, `loaded`, `error`).
+- `load="manual"` – skip automatic loading; call `fetchHtml(element)`, `fetchJson(element)`, or `fetchList(element)` when ready
+- States are exposed via `data-state` (`idle`, `loading`, `loaded`, `error`) for `<fetch-html>` and `<fetch-json>`, plus `ready`/`empty` for `<fetch-list>`.
 
 ## Browser Support
 
