@@ -1,8 +1,8 @@
 {
-  "name": "jsimpled",
+  "name": "fetchtml",
   "version": "0.1.0",
-  "description": "Lightweight DOM helper library with shorthand selectors and HTML includes",
-  "main": "dist/jsimpled.js",
+  "description": "Fetch-focused HTML components for declarative content rendering",
+  "main": "dist/fetchtml.js",
   "module": "src/index.js",
   "type": "module",
   "scripts": {
@@ -10,11 +10,11 @@
     "dev": "node build.js --watch"
   },
   "keywords": [
-    "dom",
-    "selector",
-    "query",
-    "include",
-    "lightweight",
+    "fetch",
+    "html",
+    "templating",
+    "components",
+    "web-components",
     "vanilla-js"
   ],
   "author": "",

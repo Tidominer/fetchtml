@@ -15,6 +15,62 @@ const STATES = {
   ERROR: 'error',
 };
 
+function hasReplaceAttribute(element) {
+  return Boolean(element && typeof element.hasAttribute === 'function' && element.hasAttribute('replace'));
+}
+
+function ensureReplaceAnchor(element, label = 'fetchtml') {
+  if (!hasReplaceAttribute(element)) {
+    return null;
+  }
+
+  if (!element._fetchtmlReplaceAnchor) {
+    element._fetchtmlReplaceAnchor = document.createComment(`${label} replace anchor`);
+    if (element.parentNode) {
+      element.parentNode.insertBefore(element._fetchtmlReplaceAnchor, element);
+    }
+  } else if (
+    element._fetchtmlReplaceAnchor.parentNode &&
+    element.parentNode !== element._fetchtmlReplaceAnchor.parentNode
+  ) {
+    element._fetchtmlReplaceAnchor.parentNode.insertBefore(
+      element,
+      element._fetchtmlReplaceAnchor.nextSibling
+    );
+  }
+
+  return element._fetchtmlReplaceAnchor;
+}
+
+function cleanupReplacedNodes(element) {
+  if (Array.isArray(element?._fetchtmlReplacedNodes)) {
+    element._fetchtmlReplacedNodes.forEach((node) => {
+      if (node && node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    });
+  }
+
+  element._fetchtmlReplacedNodes = null;
+}
+
+function restoreReplaceTarget(element, label) {
+  if (!hasReplaceAttribute(element)) {
+    return;
+  }
+
+  const anchor = ensureReplaceAnchor(element, label);
+  if (!anchor) {
+    return;
+  }
+
+  cleanupReplacedNodes(element);
+
+  if (!element.parentNode && anchor.parentNode) {
+    anchor.parentNode.insertBefore(element, anchor.nextSibling);
+  }
+}
+
 /**
  * Sets state on an element.
  * @param {Element} element
@@ -231,6 +287,11 @@ async function fetchData(element, options) {
  * @param {Object} options
  */
 function renderItems(element, items, options) {
+  const shouldReplace = hasReplaceAttribute(element);
+  if (shouldReplace) {
+    ensureReplaceAnchor(element, 'fetch-list');
+  }
+
   // Find template
   const templateAttr = element.getAttribute('template');
   let template = null;
@@ -265,18 +326,28 @@ function renderItems(element, items, options) {
   // Annotate rendered nodes with descriptor data for nested context lookups
   attachDescriptors(descriptors);
 
-  // Clear and append
-  element.innerHTML = '';
-  element.appendChild(fragment);
+  let renderedElements = [];
 
-  // Process inner-list elements
-  processInnerLists(element);
+  if (shouldReplace && element.parentNode) {
+    const nodesToInsert = Array.from(fragment.childNodes);
+    element.replaceWith(fragment);
+    element._fetchtmlReplacedNodes = nodesToInsert;
+
+    renderedElements = nodesToInsert.filter((node) => node.nodeType === Node.ELEMENT_NODE);
+    renderedElements.forEach((node) => processInnerLists(node));
+  } else {
+    element.innerHTML = '';
+    element.appendChild(fragment);
+    element._fetchtmlReplacedNodes = null;
+
+    processInnerLists(element);
+    renderedElements = Array.from(element.children);
+  }
   
   // afterRender hook
   if (options && typeof options.afterRender === 'function') {
     try {
-      const renderedNodes = Array.from(element.children);
-      options.afterRender(renderedNodes, element);
+      options.afterRender(renderedElements, element);
     } catch (error) {
       console.error('afterRender hook error:', error);
     }
@@ -300,6 +371,8 @@ function processInnerLists(container) {
  * @param {Element} element - inner-list element
  */
 function renderInnerList(element) {
+  restoreReplaceTarget(element, 'inner-list');
+
   const key = element.getAttribute('key');
   if (!key) {
     console.warn('inner-list requires a "key" attribute.');
@@ -346,16 +419,32 @@ function renderInnerList(element) {
   const { fragment, descriptors } = templating.renderList(items, template, {
     parentContext: parentDescriptor,
   });
-  element.innerHTML = '';
-  element.appendChild(fragment);
+  const shouldReplace = hasReplaceAttribute(element);
+  if (shouldReplace) {
+    ensureReplaceAnchor(element, 'inner-list');
+  }
 
   attachDescriptors(descriptors);
 
-  // Preserve descriptor on element for nested lookups
-  element._jsimpledDescriptor = parentDescriptor;
-  
-  // Recursively process nested inner-lists
-  processInnerLists(element);
+  if (shouldReplace && element.parentNode) {
+    const nodesToInsert = Array.from(fragment.childNodes);
+    element.replaceWith(fragment);
+    element._fetchtmlReplacedNodes = nodesToInsert;
+
+    nodesToInsert
+      .filter((node) => node.nodeType === Node.ELEMENT_NODE)
+      .forEach((node) => processInnerLists(node));
+  } else {
+    element.innerHTML = '';
+    element.appendChild(fragment);
+    element._fetchtmlReplacedNodes = null;
+
+    // Recursively process nested inner-lists
+    processInnerLists(element);
+  }
+
+  // Preserve descriptor on element for nested lookups even if replaced
+  element._fetchtmlDescriptor = parentDescriptor;
 }
 
 /**
@@ -369,8 +458,8 @@ function findParentDescriptor(element) {
   
   while (current) {
     // Check if this element has descriptor attached
-    if (current._jsimpledDescriptor) {
-      return current._jsimpledDescriptor;
+    if (current._fetchtmlDescriptor) {
+      return current._fetchtmlDescriptor;
     }
     
     // Stop at fetch-list boundary
@@ -400,8 +489,8 @@ function attachDescriptors(descriptors) {
 
     descriptor.nodes.forEach((node) => {
       if (node && node.nodeType === Node.ELEMENT_NODE) {
-        node._jsimpledData = descriptor.data;
-        node._jsimpledDescriptor = descriptor;
+        node._fetchtmlData = descriptor.data;
+        node._fetchtmlDescriptor = descriptor;
       }
     });
   });
@@ -414,6 +503,8 @@ function attachDescriptors(descriptors) {
  * @returns {Promise}
  */
 async function processFetchList(element, options = {}) {
+  restoreReplaceTarget(element, 'fetch-list');
+
   const currentState = getState(element);
   
   // Prevent duplicate loads
@@ -534,12 +625,12 @@ export function createController(element, options = {}) {
       }
       
       setState(element, STATES.IDLE);
-      element._jsimpledController = null;
+      element._fetchtmlController = null;
     },
   };
   
   // Store controller on element
-  element._jsimpledController = controller;
+  element._fetchtmlController = controller;
   
   // Handle load attribute
   const loadMode = element.getAttribute('load') || 'auto';
@@ -591,12 +682,12 @@ export function fetchList(elementOrSelector, options = {}) {
   }
   
   // Return existing controller if present
-  if (element._jsimpledController) {
+  if (element._fetchtmlController) {
     // Update options if provided
     if (Object.keys(options).length) {
-      element._jsimpledController.setOptions(options);
+      element._fetchtmlController.setOptions(options);
     }
-    return element._jsimpledController;
+    return element._fetchtmlController;
   }
   
   // Create new controller
@@ -611,7 +702,7 @@ export function initFetchListAutoload() {
     document.addEventListener('DOMContentLoaded', () => {
       const fetchLists = document.querySelectorAll('fetch-list[load="auto"]');
       fetchLists.forEach((element) => {
-        if (!element._jsimpledController) {
+        if (!element._fetchtmlController) {
           createController(element);
         }
       });

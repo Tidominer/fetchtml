@@ -1,5 +1,5 @@
 /**
- * jsimpled - Lightweight DOM helper library
+ * FetchTML - Fetch-first HTML component toolkit
  * Main entry point that exports all public APIs
  */
 
@@ -20,17 +20,17 @@ if (typeof window !== 'undefined') {
   initFetchListAutoload();
 
   // Export to global namespace
-  if (!window.jsimpled) {
-    window.jsimpled = {};
+  if (!window.fetchtml) {
+    window.fetchtml = {};
   }
 
-  window.jsimpled.fetchHtml = fetchHtml;
-  window.jsimpled.elements = elements;
-  window.jsimpled.fetchHtml = fetchHtml;
-  window.jsimpled.fetchList = fetchList;
-  window.jsimpled.formatters = formatters;
-  window.element = element;
-  window.elements = elements;
+  window.fetchtml.fetchHtml = fetchHtml;
+  window.fetchtml.fetchList = fetchList;
+  window.fetchtml.formatters = formatters;
+  window.fetchtml.element = element;
+  window.fetchtml.elements = elements;
+
+  // Backward compatibility aliases (optional future removal)
   window.fetchHtml = fetchHtml;
   window.fetchList = fetchList;
 }

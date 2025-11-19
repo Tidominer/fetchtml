@@ -1,65 +1,42 @@
-# jsimpled
+# FetchTML
 
-A lightweight DOM helper library with shorthand selectors, fetch-based HTML includes, and declarative data binding.
+A fetch-first HTML component toolkit for declaratively loading and rendering remote content.
 
 ## Features
 
-- **Shorthand selectors**: `element('#id')`, `element('.class')`, `element('tag')`
-- **Multi-class support**: Space-separated classes require all matches
-- **Scoped queries**: `someElement.element('.child')`
-- **HTML includes**: `<fetch-html href="partial.html">`
-- **Data-driven lists**: `<fetch-list>` with JSON API binding and templating
-- **Nested rendering**: `<inner-list>` for hierarchical data
-- **Template formatters**: Built-in and custom value transformers
-- **Zero dependencies**
-- **Tiny footprint**
+- **Fetch components**: `<fetch-html>`, `<fetch-list>`, and `<inner-list>` tags that pull HTML and JSON directly into your markup
+- **Replace-on-demand**: Add `replace` to remove wrappers when you want fetched fragments to stand alone
+- **Templating**: Placeholder syntax with formatter pipelines, parent traversal, and nested contexts
+- **Lifecycle hooks**: before/after render, error handlers, and list state templates for loading/empty/error views
+- **Selector shorthands (optional)**: Convenience helpers remain available, but FetchTML focuses on fetch-driven markup
 
 ## Installation
 
 ```bash
-npm install jsimpled
+npm install fetchtml
 ```
 
 Or use the single-file build:
 
 ```html
-<script src="dist/jsimpled.min.js"></script>
+<script src="dist/fetchtml.min.js"></script>
 ```
 
 ## Quick Start
 
-### Browser (global usage)
+Add the following script tag to your HTML head:
 
 ```html
-<script src="dist/jsimpled.min.js"></script>
-<script>
-  // Select elements without imports
-  const hero = element('#hero');
-  const cards = elements('.card');
-  const firstLink = hero.element('a');
-
-  // Fetch and inject HTML fragments
-  fetchHtml();
-  
-  // Control fetch-list dynamically
-  const userList = fetchList('#users');
-  userList.reload({ params: { status: 'active' } });
-</script>
+<script src="dist/fetchtml.min.js"></script>
 ```
 
-### Module bundlers (optional)
-
-```js
-import { element, elements, fetchHtml, fetchList } from 'jsimpled';
-
-const hero = element('#hero');
-const cards = elements('.card');
-fetchHtml();
-```
-
-### Data-driven rendering
+You can now use the tags:
 
 ```html
+<!-- Fetch a remote HTML fragment -->
+<fetch-html url="/api/users" load="auto"></fetch-html>
+
+<!-- Fetch a remote JSON list and render it with a template -->
 <fetch-list url="/api/users" template="#user-card" load="auto">
   <template id="user-card">
     <div class="card">
@@ -70,6 +47,25 @@ fetchHtml();
   </template>
 </fetch-list>
 ```
+
+### Loading modes
+
+- `load="auto"` (default) – load immediately after DOMContentLoaded
+- `load="lazy"` – defer until the element enters the viewport (uses `IntersectionObserver` when available)
+- `load="manual"` – skip automatic loading; call `fetchHtml(element)` or `fetchtml.fetchHtml(element)` when ready
+- States are exposed via `data-state` (`idle`, `loading`, `loaded`, `error`).
+
+## Browser Support
+
+| Browser              | Support |
+| -------------------- | ------- |
+| Chrome (latest)      | ✅ |
+| Firefox (latest)     | ✅ |
+| Safari 15+           | ✅ |
+| Edge (Chromium)      | ✅ |
+| Internet Explorer 11 | ❌ |
+
+> FetchTML relies on modern platform features such as `fetch`, `Custom Elements`, and template cloning. For legacy browsers, include the relevant polyfills before loading the library.
 
 ## Development
 
@@ -82,6 +78,11 @@ npm run build
 
 # Run tests (when available)
 npm test
+
+# Output directory
+# - dist/fetchtml.esm.js
+# - dist/fetchtml.js
+# - dist/fetchtml.min.js
 ```
 
 ## Documentation

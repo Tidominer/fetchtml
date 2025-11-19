@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build script for jsimpled library
+ * Build script for FetchTML library
  * Generates ESM, IIFE, and minified bundles
  */
 
@@ -14,20 +14,20 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const builds = [
   {
     name: 'ESM',
-    outfile: 'dist/jsimpled.esm.js',
+    outfile: 'dist/fetchtml.esm.js',
     format: 'esm',
   },
   {
     name: 'IIFE',
-    outfile: 'dist/jsimpled.js',
+    outfile: 'dist/fetchtml.js',
     format: 'iife',
-    globalName: 'jsimpled',
+    globalName: 'fetchtml',
   },
   {
     name: 'IIFE (minified)',
-    outfile: 'dist/jsimpled.min.js',
+    outfile: 'dist/fetchtml.min.js',
     format: 'iife',
-    globalName: 'jsimpled',
+    globalName: 'fetchtml',
     minify: true,
     sourcemap: true,
   },
@@ -41,7 +41,7 @@ async function build() {
     // Directory already exists
   }
 
-  console.log('Building jsimpled...\n');
+  console.log('Building FetchTML...\n');
 
   for (const config of builds) {
     try {

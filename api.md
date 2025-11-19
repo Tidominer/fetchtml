@@ -1,8 +1,10 @@
-# jsimpled Library API
+# FetchTML API
 
-This document lists the public methods currently shipped with `jsimpled`. Each section captures the method description, parameters, return type, example usage, and error conditions. Additional helpers will appear here as the library grows.
+This document describes the public API for FetchTML, focusing on fetch-aware HTML components, templating utilities, and optional selector helpers.
 
-## Selection helpers
+## Selection Helpers (optional)
+
+These helpers provide shorthand query methods for the DOM. They remain available for convenience, but FetchTML's primary value comes from its fetch components.
 
 ### `element(selector)`
 
@@ -92,16 +94,19 @@ Fetches HTML content from a URL and replaces the `<fetch-html>` tag with the fet
 - `href` or `src` *(required)* – URL to fetch content from
 - `method` *(optional)* – HTTP method (default: GET)
 - `credentials` *(optional)* – Credentials mode: `omit`, `same-origin`, `include`
+- `load` *(optional)* – Loading mode: `auto` (default), `lazy`, `manual`
+- `replace` *(optional)* – When present, replaces the `<fetch-html>` element with the fetched markup instead of injecting it inside
 
-**States**:
-- `data-jsimpled-fetch-html-state="loading"` – Currently fetching
-- `data-jsimpled-fetch-html-state="loaded"` – Successfully loaded
-- `data-jsimpled-fetch-html-state="error"` – Failed to load
+**States** (`data-state`):
+- `idle` – Awaiting a load trigger (default before fetching)
+- `loading` – Currently fetching
+- `loaded` – Successfully loaded
+- `error` – Failed to load
 
 **Example**:
 ```html
 <fetch-html href="header.html"></fetch-html>
-<fetch-html src="/api/content" method="POST"></fetch-html>
+<fetch-html src="/api/content" load="lazy"></fetch-html>
 ```
 
 ### `<fetch-list>`
@@ -117,6 +122,7 @@ Fetches a JSON array from an API and renders it using a template with placeholde
 - `empty` *(optional)* – Template ID to show when array is empty
 - `error` *(optional)* – Template ID to show on error
 - `method` *(optional)* – HTTP method (default: GET)
+- `replace` *(optional)* – When present, renders list items in place of the `<fetch-list>` wrapper while keeping state templates inside the element
 
 **States**:
 - `data-state="idle"` – Initial state
@@ -161,6 +167,7 @@ Renders a nested array from the parent item's data. Must be used inside a `<fetc
 - `key` *(required)* – Property name containing the nested array (supports dot/bracket notation)
 - `template` *(optional)* – Template ID for rendering items
 - `empty` *(optional)* – Template ID to show when nested array is empty
+- `replace` *(optional)* – When present, renders nested items in place of the `<inner-list>` tag
 
 **Example**:
 ```html
@@ -284,7 +291,7 @@ Registers a custom formatter function.
 **Example**:
 ```js
 // Register custom formatter
-jsimpled.formatters.register('reverse', (value) => {
+fetchtml.formatters.register('reverse', (value) => {
   return String(value).split('').reverse().join('');
 });
 

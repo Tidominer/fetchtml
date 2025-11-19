@@ -1,22 +1,22 @@
-# Project Structure
+# FetchTML Project Structure
 
 ## Overview
 
-The jsimpled library has been split into modular ES6 files for easier development and maintenance. The build process combines these modules into a single distributable file.
+FetchTML is split into modular ES6 files for easier development and maintenance. The build process combines these modules into a single distributable file.
 
 ## Directory Layout
 
 ```
-jsimpled/
+fetchtml/
 ├── src/                    # Source modules
 │   ├── helpers.js         # Shared DOM utility functions
 │   ├── selectors.js       # Element selection logic
 │   ├── fetch-html.js      # HTML fetching functionality
 │   └── index.js           # Main entry point & exports
 ├── dist/                   # Build output (generated)
-│   ├── jsimpled.js        # IIFE bundle
-│   ├── jsimpled.esm.js    # ESM bundle
-│   └── jsimpled.min.js    # Minified IIFE bundle
+│   ├── fetchtml.js        # IIFE bundle
+│   ├── fetchtml.esm.js    # ESM bundle
+│   └── fetchtml.min.js    # Minified IIFE bundle
 ├── api.md                  # API documentation
 ├── README.md               # Project overview
 ├── package.json            # NPM configuration
@@ -54,7 +54,7 @@ Main entry point that:
 - Imports all modules
 - Attaches methods to DOM prototypes
 - Exports public APIs
-- Sets up global namespace
+- Sets up the `window.fetchtml` namespace
 
 ## Build Process
 
@@ -74,9 +74,9 @@ npm install
 npm run build
 
 # Output:
-# - dist/jsimpled.esm.js    (ES module)
-# - dist/jsimpled.js        (IIFE for <script> tags)
-# - dist/jsimpled.min.js    (Minified IIFE)
+# - dist/fetchtml.esm.js    (ES module)
+# - dist/fetchtml.js        (IIFE for <script> tags)
+# - dist/fetchtml.min.js    (Minified IIFE)
 ```
 
 ## Development Workflow

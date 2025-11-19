@@ -1,10 +1,10 @@
 /**
- * fetch-html functionality for dynamic content loading.
+ * FetchTML fetch-html functionality for dynamic content loading.
  */
 
 import * as helpers from './helpers.js';
 
-const FETCH_HTML_STATE_ATTR = 'data-jsimpled-fetch-html-state';
+const FETCH_HTML_STATE_ATTR = 'data-state';
 const FETCH_HTML_SELECTOR = 'fetch-html[href], fetch-html[src]';
 
 /**
@@ -49,12 +49,22 @@ function normalizeFetchHtmlArgs(scopeOrOptions, maybeOptions) {
     return {
       scope: scopeOrOptions,
       options: maybeOptions || null,
+      manualTrigger: true,
+    };
+  }
+
+  if (scopeOrOptions && typeof scopeOrOptions === 'object') {
+    return {
+      scope: undefined,
+      options: scopeOrOptions,
+      manualTrigger: true,
     };
   }
 
   return {
     scope: undefined,
-    options: scopeOrOptions || null,
+    options: maybeOptions || null,
+    manualTrigger: false,
   };
 }
 
@@ -138,11 +148,15 @@ function invokeHook(hook, args) {
 function handleSuccess(element, fragment, options) {
   const override = invokeHook(options && options.beforeInsert, [element, fragment]);
   const nodeToInsert = typeof Node !== 'undefined' && override instanceof Node ? override : fragment;
+  const shouldReplace = element.hasAttribute('replace');
 
-  if (typeof element.replaceWith === 'function') {
+  if (shouldReplace && typeof element.replaceWith === 'function') {
     element.replaceWith(nodeToInsert);
-  } else if (element.parentNode) {
+  } else if (shouldReplace && element.parentNode) {
     element.parentNode.replaceChild(nodeToInsert, element);
+  } else {
+    element.innerHTML = '';
+    element.appendChild(nodeToInsert);
   }
 
   setFetchHtmlState(element, 'loaded');
@@ -170,6 +184,85 @@ function handleError(element, options, error) {
 }
 
 /**
+ * Normalizes the load mode for a fetch-html element.
+ * @param {Element} element
+ * @returns {string}
+ */
+function getLoadMode(element) {
+  if (!element || typeof element.getAttribute !== 'function') {
+    return 'auto';
+  }
+
+  const raw = element.getAttribute('load');
+  if (!raw) {
+    return 'auto';
+  }
+
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === 'lazy' || normalized === 'manual') {
+    return normalized;
+  }
+
+  return 'auto';
+}
+
+/**
+ * Schedules lazy loading for a fetch-html element.
+ * @param {Element} element
+ * @param {Object} [options]
+ * @returns {Promise<null>}
+ */
+function scheduleLazyLoad(element, options) {
+  if (!element || element._fetchtmlLazyScheduled) {
+    return Promise.resolve(null);
+  }
+
+  element._fetchtmlLazyScheduled = true;
+
+  const clearScheduling = () => {
+    element._fetchtmlLazyScheduled = false;
+
+    if (element._fetchtmlLazyObserver) {
+      element._fetchtmlLazyObserver.disconnect();
+      element._fetchtmlLazyObserver = null;
+    }
+
+    if (element._fetchtmlLazyTimeout) {
+      if (typeof window !== 'undefined' && typeof window.clearTimeout === 'function') {
+        window.clearTimeout(element._fetchtmlLazyTimeout);
+      }
+      element._fetchtmlLazyTimeout = null;
+    }
+  };
+
+  const triggerLoad = () => {
+    clearScheduling();
+    processFetchHtmlElement(element, options || null).catch(() => {
+      // Errors are handled inside processFetchHtmlElement.
+    });
+  };
+
+  if (typeof IntersectionObserver === 'function') {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          triggerLoad();
+        }
+      });
+    });
+
+    observer.observe(element);
+    element._fetchtmlLazyObserver = observer;
+  } else if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
+    element._fetchtmlLazyTimeout = window.setTimeout(triggerLoad, 100);
+  } else {
+    triggerLoad();
+  }
+
+  return Promise.resolve(null);
+}
+
+/**
  * Processes a single fetch-html element.
  * @param {Element} element - fetch-html element
  * @param {Object} [options] - Options object
@@ -190,7 +283,7 @@ function processFetchHtmlElement(element, options) {
 
   const fetchImpl = getFetcher(options);
   if (!fetchImpl) {
-    const error = new Error('jsimpled.fetchHtml requires a fetch implementation.');
+    const error = new Error('fetchtml.fetchHtml requires a fetch implementation.');
     handleError(element, options, error);
     return Promise.reject(error);
   }
@@ -273,6 +366,7 @@ export function fetchHtml(scopeOrOptions, maybeOptions) {
 
   const normalized = normalizeFetchHtmlArgs(scopeOrOptions, maybeOptions);
   const options = normalized.options || {};
+  const manualTrigger = Boolean(normalized.manualTrigger);
 
   let scope;
   try {
@@ -287,7 +381,32 @@ export function fetchHtml(scopeOrOptions, maybeOptions) {
     return Promise.resolve([]);
   }
 
-  const promises = nodes.map((node) => processFetchHtmlElement(node, options));
+  const promises = [];
+
+  nodes.forEach((node) => {
+    if (!getFetchHtmlState(node)) {
+      setFetchHtmlState(node, 'idle');
+    }
+
+    const loadMode = getLoadMode(node);
+
+    if (loadMode === 'manual' && !manualTrigger) {
+      return;
+    }
+
+    if (loadMode === 'lazy' && !manualTrigger) {
+      setFetchHtmlState(node, 'idle');
+      promises.push(scheduleLazyLoad(node, options));
+      return;
+    }
+
+    promises.push(processFetchHtmlElement(node, options));
+  });
+
+  if (!promises.length) {
+    return Promise.resolve([]);
+  }
+
   return Promise.all(promises).catch((error) => {
     throw error;
   });
