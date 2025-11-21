@@ -696,7 +696,7 @@ export function fetchList(elementOrSelector, options = {}) {
 export function initFetchListAutoload() {
   if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
     document.addEventListener('DOMContentLoaded', () => {
-      const fetchLists = document.querySelectorAll('fetch-list[load="auto"]');
+      const fetchLists = document.querySelectorAll('fetch-list:not([load]), fetch-list[load="auto"]');
       fetchLists.forEach((element) => {
         if (!element._fetchtmlController) {
           createController(element);
